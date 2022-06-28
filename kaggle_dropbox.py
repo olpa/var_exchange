@@ -66,6 +66,7 @@ def refresh_token(auth):
 def join_path(basedir, fname):
     if fname and fname[0] == '/':
         return fname
+    basedir = '' if basedir is None else basedir
     slash = '/' if basedir and basedir[0] != '/' else ''
     return f'{slash}{basedir}/{fname}'
 
@@ -103,4 +104,8 @@ class KaggleDropbox:
             if not e.is_path():
                 raise e
             return None
-        return res
+        return res.content
+
+    def put_file(self, fname, content):
+        path = join_path(self.basedir, fname)
+        self.dbx.files_upload(content, path)

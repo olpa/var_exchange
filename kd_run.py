@@ -71,8 +71,13 @@ def main():
     if args.get_file:
         content = kd.get_file_content(args.get_file)
         if content:
-            sys.stdout.write(content)
+            sys.stdout.buffer.write(content)
         sys.exit(0)
-    print(args)
+    if args.put_file:
+        with open(args.put_file, 'rb') as h:
+            content = h.read()
+        kd.put_file(args.put_file, content)
+        sys.exit(0)
+    assert False
 
 main()
