@@ -3,16 +3,17 @@ import dropbox
 import os
 import sys
 
-import kaggle_dropbox as kd
+from kaggle_dropbox import KaggleDropbox, auth_first_time
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description = 'Exchange Python variables through Dropbox')
+    parser.add_argument('--setup', dest='do_setup', action='store_true', help='create auth file')
     parser.add_argument('--basedir', type=str, help='parent directory on Dropbox')
     parser.add_argument('--get-file', type=str)
     parser.add_argument('--put-file', type=str)
     parser.add_argument('--get-var', type=str, help='get file from dropbox and print as python variable')
     args = parser.parse_args()
-    assert bool(args.get_file) + bool(args.put_file) + bool(args.get_var) == 1, "One and only one of the arguments '--get-file', '--put-file' and '--get-var' is expected, got:" + str(args)
+    assert bool(args.do_setup) + bool(args.get_file) + bool(args.put_file) + bool(args.get_var) == 1, "One and only one of the arguments '--setup', '--get-file', '--put-file' and '--get-var' is expected, got:" + str(args)
     return args
 
 #auth = kd.get_auth()
@@ -60,6 +61,14 @@ def download_file(fname):
 
 def main():
     args = parse_command_line()
+    if args.do_setup:
+        auth_first_time()
+        sys.exit(0)
+    kd = KaggleDropbox()
+    if args.get_file:
+        content = kd.get_file_content(args.get_file)
+        print(content)
+        sys.exit(0)
     print(args)
 
 main()

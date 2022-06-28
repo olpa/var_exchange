@@ -1,27 +1,36 @@
 import base64
 import dropbox
 import json
+import logging
 import os
 import pickle
 
+DEFAULT_AUTH_FILE = '~/.kaggle/dropbox.json'
+logger = logging.getLogger('kaggle_dropbox')
 
-def get_auth(fname = '~/.kaggle/dropbox.json'):
+
+def get_auth(fname):
     fname = os.path.expanduser(fname)
     with open(fname) as h:
-        return json.load(h)
+        auth = json.load(h)
+    for required in ('key', 'secret', 'oautjhh'):
+        assert required in auth, f"Auth json should have '{required}' key"
+    return auth
 
 
-def save_auth(auth, fname = '~/.kaggle/dropbox.json'):
+def save_auth(auth):
     fname = os.path.expanduser(fname)
     with open(fname, 'w') as h:
         json.dump(auth, h, indent=2)
         h.write('\n')
 
 
-def auth_first_time(auth):
+def auth_first_time():
+    key = input('Enter the application key:').strip()
+    secret = input('Enter the application secret:').strip()
     auth_flow = dropbox.DropboxOAuth2FlowNoRedirect(
-        auth['key'],
-        consumer_secret=auth['secret'],
+        key,
+        consumer_secret=secret,
         token_access_type='offline'
         )
     authorize_url = auth_flow.start()
@@ -29,8 +38,14 @@ def auth_first_time(auth):
     print("2. Click \"Allow\" (you might have to log in first).")
     print("3. Copy the authorization code.")
     auth_code = input("Enter the authorization code here: ").strip()
-    oauth_result = auth_flow.finish(auth_code)
-    return oauth_result
+    oauth = auth_flow.finish(auth_code)
+    s_oauth = pickle.dump(oauth)
+    s_oauth = base64.base64encode(s_oauth)
+    print('Put the following json to {DEFAULT_AUTH_FILE} or TODO:\n', {
+        'key': key,
+        'oauth': s_oauth,
+        'secret': secret,
+        })
 
 def refresh_token(auth):
     prev_result = auth_to_token(auth)
@@ -48,16 +63,27 @@ def refresh_token(auth):
 # auth['oauth'] = base64.b64encode(b).decode('ascii')
 # kd.save_auth(auth)
 
-def auth_to_token(auth):
+def extract_oauth_object(auth):
     oauth = auth['oauth']
     pickled = base64.b64decode(oauth)
     return pickle.loads(pickled)
 
-import logging
-logger = logging.getLogger('kaggle_dropbox')
-
 class KaggleDropbox:
-    def __init__(self):
+    def __init__(self,
+            auth_file=DEFAULT_AUTH_FILE,
+            namespace='',
+            **dropbox_options):
+        self.namespace = namespace
+        auth = get_auth(auth_file)
+        oauth = extract_oauth_object(auth)
+        assert isinstance(oauth, string)  # FIXME
+        self.dbx = dropbox.Dropbox(
+                oauth2_access_token=oauth.access_token,
+                oauth2_access_token_expiration=oauth.expires_at,
+                oauth2_refresh_token=oauthj.refresh_token,
+                app_key=auth['key'],
+                app_secret=auth['secret']
+                )
 
     def get(var_name):
         path = .... var_name
@@ -70,3 +96,5 @@ class KaggleDropbox:
             if not e.is_path():
                 raise e
             return None
+
+
