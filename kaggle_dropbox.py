@@ -13,7 +13,7 @@ def get_auth(fname):
     fname = os.path.expanduser(fname)
     with open(fname) as h:
         auth = json.load(h)
-    for required in ('key', 'secret', 'oautjhh'):
+    for required in ('key', 'secret', 'oauth'):
         assert required in auth, f"Auth json should have '{required}' key"
     return auth
 
@@ -63,6 +63,12 @@ def refresh_token(auth):
 # auth['oauth'] = base64.b64encode(b).decode('ascii')
 # kd.save_auth(auth)
 
+def join_path(basedir, fname):
+    if fname and fname[0] == '/':
+        return fname
+    slash = '/' if basedir and basedir[0] != '/' else ''
+    return f'{slash}{basedir}/{fname}'
+
 def extract_oauth_object(auth):
     oauth = auth['oauth']
     pickled = base64.b64decode(oauth)
@@ -71,30 +77,30 @@ def extract_oauth_object(auth):
 class KaggleDropbox:
     def __init__(self,
             auth_file=DEFAULT_AUTH_FILE,
-            namespace='',
-            **dropbox_options):
-        self.namespace = namespace
+            basedir='',
+            ):
+        self.basedir = basedir
         auth = get_auth(auth_file)
         oauth = extract_oauth_object(auth)
-        assert isinstance(oauth, string)  # FIXME
+        assert isinstance(oauth, dropbox.oauth.OAuth2FlowNoRedirectResult), "key 'oauth' in auth, expected type: dropbox.oauth.OAuth2FlowNoRedirectResult, got: {type(oauth)}"
         self.dbx = dropbox.Dropbox(
                 oauth2_access_token=oauth.access_token,
                 oauth2_access_token_expiration=oauth.expires_at,
-                oauth2_refresh_token=oauthj.refresh_token,
+                oauth2_refresh_token=oauth.refresh_token,
                 app_key=auth['key'],
                 app_secret=auth['secret']
                 )
 
-    def get(var_name):
-        path = .... var_name
+    def get_file_content(self, fname):
+        path = join_path(self.basedir, fname)
         try:
-            metadata, res  = dbx.files_download('/olpa-kaggle/test.py')
-        except dropbox.ApiError as e:
+            metadata, res  = self.dbx.files_download(path)
+        except dropbox.exceptions.ApiError as e:
             logger.info("Can not get '%s': '%s'", path, e)
-            if not isinstance(e, dropbox.DownloadError):
+            e = e.error
+            if not isinstance(e, dropbox.files.DownloadError):
                 raise e
             if not e.is_path():
                 raise e
             return None
-
-
+        return res

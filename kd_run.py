@@ -1,5 +1,6 @@
 import argparse
 import dropbox
+import logging
 import os
 import sys
 
@@ -64,10 +65,13 @@ def main():
     if args.do_setup:
         auth_first_time()
         sys.exit(0)
-    kd = KaggleDropbox()
+    logging.basicConfig()
+    logging.getLogger('kaggle_dropbox').setLevel(logging.INFO)
+    kd = KaggleDropbox(basedir=args.basedir)
     if args.get_file:
         content = kd.get_file_content(args.get_file)
-        print(content)
+        if content:
+            sys.stdout.write(content)
         sys.exit(0)
     print(args)
 
