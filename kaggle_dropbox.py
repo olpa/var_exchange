@@ -6,17 +6,34 @@ import os
 import pickle
 
 DEFAULT_AUTH_FILE = '~/.kaggle/dropbox.json'
+DEFAULT_SECRET_NAME = 'dropbox'
 logger = logging.getLogger('kaggle_dropbox')
 
 
-def get_auth(fname):
+def get_auth_from_file(fname):
     fname = os.path.expanduser(fname)
-    with open(fname) as h:
-        auth = json.load(h)
+    try:
+        with open(fname) as h:
+            auth = json.load(h)
+    except FileNotFoundError:
+        return None
     for required in ('key', 'secret', 'oauth'):
         assert required in auth, f"Auth json should have '{required}' key"
     return auth
 
+def get_auth_from_secret(sname):
+    try:
+        import kaggle_secrets
+        try:
+            auth = kaggle_secrets.UserSecretsClient().get_secret(sname)
+        except kaggle_secrets.BackendError:
+            logger.error(f'Secret not found: {sname}')
+            return None
+    except ModuleNotFoundError:
+        return None
+    for required in ('key', 'secret', 'oauth'):
+        assert required in auth, f"Auth json should have '{required}' key"
+    return auth
 
 def save_auth(auth):
     fname = os.path.expanduser(fname)
@@ -77,11 +94,15 @@ def extract_oauth_object(auth):
 
 class KaggleDropbox:
     def __init__(self,
-            auth_file=DEFAULT_AUTH_FILE,
             basedir='',
+            auth_file=DEFAULT_AUTH_FILE,
+            auth_secret=DEFAULT_SECRET_NAME,
             ):
         self.basedir = basedir
-        auth = get_auth(auth_file)
+        auth = get_auth_from_file(auth_file)
+        if not auth:
+            auth = get_auth_from_secret(auth_secret)
+        assert auth, f"Auth not found. Looked for the file {auth_file} and kaggle secret '{auth_secret}'"
         oauth = extract_oauth_object(auth)
         assert isinstance(oauth, dropbox.oauth.OAuth2FlowNoRedirectResult), "key 'oauth' in auth, expected type: dropbox.oauth.OAuth2FlowNoRedirectResult, got: {type(oauth)}"
         self.dbx = dropbox.Dropbox(
