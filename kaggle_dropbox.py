@@ -25,9 +25,13 @@ def get_auth_from_secret(sname):
     try:
         import kaggle_secrets
         try:
-            auth = kaggle_secrets.UserSecretsClient().get_secret(sname)
+            s_auth = kaggle_secrets.UserSecretsClient().get_secret(sname)
+            auth = json.loads(s_auth)
         except kaggle_secrets.BackendError:
             logger.error(f'Secret not found: {sname}')
+            return None
+        except json.decoder.JSONDecodeError as e:
+            logger.error(f'Bad value of the secret: {e}')
             return None
     except ModuleNotFoundError:
         return None
@@ -56,13 +60,15 @@ def auth_first_time():
     print("3. Copy the authorization code.")
     auth_code = input("Enter the authorization code here: ").strip()
     oauth = auth_flow.finish(auth_code)
-    s_oauth = pickle.dump(oauth)
-    s_oauth = base64.base64encode(s_oauth)
-    print('Put the following json to {DEFAULT_AUTH_FILE} or TODO:\n', {
+    s_oauth = pickle.dumps(oauth)
+    s_oauth = base64.b64encode(s_oauth)
+    s_oauth = str(s_oauth, 'ascii')
+    s_json = json.dumps({
         'key': key,
         'oauth': s_oauth,
         'secret': secret,
         })
+    print(f"Put the following json to the file '{DEFAULT_AUTH_FILE}' or kaggle kernel secret '{DEFAULT_SECRET_NAME}':\n{s_json}")
 
 def refresh_token(auth):
     prev_result = auth_to_token(auth)
