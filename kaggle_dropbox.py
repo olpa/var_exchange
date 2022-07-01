@@ -145,3 +145,11 @@ class KaggleDropbox:
         content = self.get_file_content(fname)
         if content:
             return pickle.loads(content)
+
+def get_putv_getv(**kw):
+    kd = KaggleDropbox(**kw)
+    def putv(*ls):
+        kd.putv(*ls)
+    def getv(*ls):
+        kd.getv(*ls)
+    return putv, getv
