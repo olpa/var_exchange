@@ -78,6 +78,10 @@ def main():
             content = h.read()
         kd.put_file(args.put_file, content)
         sys.exit(0)
+    if args.get_var:
+        v = kd.getv(args.get_var)
+        print(v)
+        sys.exit(0)
     assert False
 
 main()

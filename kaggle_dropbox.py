@@ -133,6 +133,15 @@ class KaggleDropbox:
             return None
         return res.content
 
-    def put_file(self, fname, content):
+    def put_file(self, content, fname):
         path = join_path(self.basedir, fname)
         self.dbx.files_upload(content, path)
+
+    def putv(self, var, fname):
+        content = pickle.dumps(var)
+        self.put_file(content, fname)
+
+    def getv(self, fname):
+        content = self.get_file_content(fname)
+        if content:
+            return pickle.loads(content)
