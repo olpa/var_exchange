@@ -135,7 +135,8 @@ class KaggleDropbox:
 
     def put_file(self, content, fname):
         path = join_path(self.basedir, fname)
-        self.dbx.files_upload(content, path)
+        self.dbx.files_upload(content, path,
+                mode=dropbox.files.WriteMode.overwrite)
 
     def putv(self, var, fname):
         content = pickle.dumps(var)
@@ -151,5 +152,5 @@ def get_putv_getv(**kw):
     def putv(*ls):
         kd.putv(*ls)
     def getv(*ls):
-        kd.getv(*ls)
+        return kd.getv(*ls)
     return putv, getv
