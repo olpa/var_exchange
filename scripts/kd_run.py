@@ -1,7 +1,9 @@
+#!/usr/bin/env python3
+
 import argparse
 import logging
 import sys
-from kaggle_dropbox import KaggleDropbox, auth_first_time
+from var_exchange.kaggle_dropbox import KaggleDropbox, auth_first_time
 
 
 def parse_command_line():
